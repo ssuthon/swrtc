@@ -1,0 +1,40 @@
+<html>
+<head>
+	<title></title>
+	<style type="text/css">
+		body {
+			text-align: center;
+		}
+	</style>
+</head>
+<body>
+<h2>video</h2>
+<video id="video" autoplay></video>
+</body>
+<script type="text/javascript">
+ if (navigator.getUserMedia) {
+   navigator.getUserMedia (
+
+      // constraints
+      {
+         video: true,
+         audio: true
+      },
+
+      // successCallback
+      function(localMediaStream) {
+         var video = document.querySelector('video');
+         video.src = window.URL.createObjectURL(localMediaStream);
+         // Do something with the video here, e.g. video.play()
+      },
+
+      // errorCallback
+      function(err) {
+         console.log("The following error occured: " + err);
+      }
+   );
+} else {
+   console.log("getUserMedia not supported");
+}
+</script>
+</html>
