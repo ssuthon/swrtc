@@ -1,6 +1,7 @@
 <html>
 <head>
 	<title></title>
+   <script type="text/javascript" src="/socket.io/socket.io.js"></script>
 	<style type="text/css">
 		body {
 			text-align: center;
@@ -10,31 +11,65 @@
 <body>
 <h2>video</h2>
 <video id="video" autoplay></video>
+<div>
+   <button id="callBtn">Call</button>
+</div>
 </body>
 <script type="text/javascript">
- if (navigator.getUserMedia) {
-   navigator.getUserMedia (
+var callBtn = document.getElementById('callBtn')
+var video = document.getElementById('video');
 
-      // constraints
-      {
-         video: true,
-         audio: true
+var socket = io.connect('http://localhost');
+
+navigator.getUserMedia = navigator.getUserMedia ||
+   navigator.webkitGetUserMedia ||
+   navigator.mozGetUserMedia
+
+callBtn.disabled = true;
+callBtn.onclick = call;
+
+var localStream;
+navigator.getUserMedia (
+   {
+      video: {
+         mandatory: {
+            minWidth: 640,
+            minHeight: 360,
+            maxWidth: 640,
+            maxHeight: 360
+         }
       },
+      audio: false
+   },
 
-      // successCallback
-      function(localMediaStream) {
-         var video = document.querySelector('video');
-         video.src = window.URL.createObjectURL(localMediaStream);
-         // Do something with the video here, e.g. video.play()
-      },
+   // successCallback
+   function(stream) {
+      localStream = stream;
+      video.src = window.URL.createObjectURL(stream);
+      callBtn.disabled = false;
+   },
 
-      // errorCallback
-      function(err) {
-         console.log("The following error occured: " + err);
-      }
-   );
-} else {
-   console.log("getUserMedia not supported");
+   // errorCallback
+   function(err) {
+      console.log("The following error occured: " + err);
+   }
+);
+
+
+var pc;
+function call(){
+   var servers = null;
+   pc = new webkitRTCPeerConnection(servers);
+   pc.onicecandidate = function(e){}
+   pc.oniceconnectionstatechange = function(e){}
+   pc.addStream(localStream);
+   pc.createOffer(function(desc){
+      pc.setLocalDescription(desc, function(){ 
+         socket.emit('bc', {desc: JSON.stringify(desc), by: 'caller'});
+      });
+   }, function(e){
+      console.log(e);
+   })
 }
 </script>
 </html>
