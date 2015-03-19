@@ -1,0 +1,71 @@
+
+<html>
+<head>
+	<title></title>
+   <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	<style type="text/css">
+		body {
+			text-align: center;
+		}
+	</style>
+</head>
+<body>
+<h2>video</h2>
+<video id="video" autoplay></video>
+</body>
+<script type="text/javascript">
+
+var video = document.getElementById('video');
+
+var socket = io.connect('http://192.168.1.192');
+
+window.RTCPeerConnection = window.RTCPeerConnection ||
+   window.webkitRTCPeerConnection ||
+   window.mozRTCPeerConnection
+window.RTCSessionDescription = window.RTCSessionDescription ||
+   window.webkitRTCSessionDescription ||
+   window.mozRTCSessionDescription
+window.RTCIceCandidate = window.RTCIceCandidate ||
+   window.webkitRTCIceCandidate ||
+   window.mozRTCIceCandidate
+
+var servers = null;
+var sdpContraints = {
+   mandatory: {
+      'OfferToReceiveAudio' : false,
+      'OfferToReceiveVideo' : true
+   }
+}
+pc = new RTCPeerConnection(servers);
+pc.onicecandidate = function(event){
+   if(event.candidate){
+      socket.emit('signal', {candidate: event.candidate , by: 'callee'})
+   }  
+}
+pc.oniceconnectionstatechange = function(e){}
+pc.onaddstream = function(event){
+   console.log("stream added");
+   video.src = window.URL.createObjectURL(event.stream);
+   video.play();
+}
+socket.on('signal', function(data){
+   
+   if(data.desc){
+      console.log("answering call...");
+      pc.setRemoteDescription(new RTCSessionDescription(data.desc), 
+         function(){
+            console.log('remote description OK.');
+
+            pc.createAnswer(function(desc){
+               pc.setLocalDescription(desc);
+               socket.emit('signal', {desc: desc, by: 'callee'});
+               }, function(e){
+               console.log('fail to create answer: ' + e);
+               }, sdpContraints)
+         })
+   }else if(data.candidate){
+      pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+   }
+})
+</script>
+</html>

@@ -9,8 +9,8 @@ server.listen(80);
 
 
 io.on('connection', function (socket) {
-  socket.on('bc', function (data) {
-  	console.log('boardcasting from ' + data.by);
-    socket.broadcast.emit(data);
+  socket.on('signal', function (data) {
+  	console.log('broadcasting from ' + data.by);
+    socket.broadcast.emit('signal', data);
   });
 });

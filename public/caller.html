@@ -24,6 +24,15 @@ var socket = io.connect('http://localhost');
 navigator.getUserMedia = navigator.getUserMedia ||
    navigator.webkitGetUserMedia ||
    navigator.mozGetUserMedia
+window.RTCPeerConnection = window.RTCPeerConnection ||
+   window.webkitRTCPeerConnection ||
+   window.mozRTCPeerConnection
+window.RTCSessionDescription = window.RTCSessionDescription ||
+   window.webkitRTCSessionDescription || 
+   window.mozRTCSessionDescription
+window.RTCIceCandidate = window.RTCIceCandidate ||
+   window.webkitRTCIceCandidate ||
+   window.mozRTCIceCandidate
 
 callBtn.disabled = true;
 callBtn.onclick = call;
@@ -33,10 +42,10 @@ navigator.getUserMedia (
    {
       video: {
          mandatory: {
-            minWidth: 640,
-            minHeight: 360,
-            maxWidth: 640,
-            maxHeight: 360
+            minWidth: 320,
+            minHeight: 180,
+            maxWidth: 320,
+            maxHeight: 180
          }
       },
       audio: false
@@ -60,16 +69,33 @@ var pc;
 function call(){
    var servers = null;
    pc = new webkitRTCPeerConnection(servers);
-   pc.onicecandidate = function(e){}
-   pc.oniceconnectionstatechange = function(e){}
+   pc.onicecandidate = function(event){
+      if(event.candidate){
+         socket.emit('signal', {candidate: event.candidate , by: 'caller'})
+      }  
+   }
+   pc.oniceconnectionstatechange = function(event){}
    pc.addStream(localStream);
    pc.createOffer(function(desc){
-      pc.setLocalDescription(desc, function(){ 
-         socket.emit('bc', {desc: JSON.stringify(desc), by: 'caller'});
+      pc.setLocalDescription(desc, function(){
+         socket.emit('signal', {desc: desc, by: 'caller'});
       });
    }, function(e){
       console.log(e);
    })
+
+   socket.on('signal', function(data){
+      if(data.desc){
+         pc.setRemoteDescription(new RTCSessionDescription(data.desc), function(){
+            console.log("remote description OK");
+         })
+      }else if(data.candidate){
+         pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+
+      }
+
+   })
 }
+
 </script>
 </html>
